@@ -46,3 +46,20 @@ def add_user(tg_id: int, tg_chat_id: int, tg_username: str, full_name: str):
         except Exception as e:
             print(f"An error occurred: {e}")
             session.rollback()
+
+def add_question(specialist_type: str, tg_id: int, question_text: str):
+    with Session() as session:
+        try:
+            session.execute(text("""
+                INSERT INTO questions (specialist_type, user_id, question_text, status)
+                VALUES (:specialist_type, :user_id, :question_text, 'NEW')
+            """), {
+                'specialist_type': specialist_type,
+                'user_id': tg_id,
+                'question_text': question_text
+            })
+            session.commit()
+            print("Question added successfully.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            session.rollback()
