@@ -23,3 +23,13 @@ CREATE TABLE live_chat_connections (
     status VARCHAR(20) CHECK (status IN ('NEW', 'IN_PROCESS', 'DONE')),
     PRIMARY KEY (user_id, specialist_id)
 );
+
+CREATE TABLE specialists (
+    tg_id BIGINT,
+    tg_chat_id BIGINT,
+    full_name VARCHAR(255),
+    type VARCHAR(255)
+);
+
+INSERT INTO specialists (tg_id, tg_chat_id, full_name, type)
+VALUES (738035643, 738035643, 'Никита Водолеев', 'lymphologist');
