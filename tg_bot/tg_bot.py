@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 import os
 
+from database import add_user, add_question
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -25,12 +26,13 @@ def AskForExpert(expert):
         keyboard = MakeKeyboard(
             [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
         bot.send_message(message.chat.id, f"Ваш вопрос для {expert} был записан, ожидайте ответа", reply_markup=keyboard)
-        # ADD QUESTION TO DB
+        add_question(expert, message.from_user.id, message.text)
     return second_step
 
 
 @bot.message_handler(commands=['start'])
 def start_command_handler(message):
+    add_user(message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name + " " + message.from_user.last_name)
     keyboard = MakeKeyboard([("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
     bot.send_message(message.chat.id, "Place holder", reply_markup=keyboard)
 
@@ -40,8 +42,7 @@ def callback_query(call):
     if call.data == "Start":
         keyboard = MakeKeyboard(
             [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-        bot.(chat_id=call.message.chat.id, message_id=call.message.id,
-                              text="Place holder", reply_markup=keyboard)
+        bot.send_message(chat_id=call.message.chat.id, text="Place holder", reply_markup=keyboard)
     elif call.data == "FAQ":
         bot.send_message(call.message.chat.id, "Тут будет FAQ")
     elif call.data == "About us":
