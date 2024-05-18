@@ -63,3 +63,55 @@ def add_question(specialist_type: str, tg_id: int, question_text: str):
         except Exception as e:
             print(f"An error occurred: {e}")
             session.rollback()
+
+def is_specialist(tg_id: int):
+    with Session() as session:
+        result = session.execute(text("SELECT COUNT(*) FROM specialists WHERE tg_id = :tg_id"), {'tg_id': tg_id}).scalar()
+        return result > 0
+
+def get_specialist_types(tg_id: int):
+    with Session() as session:
+        result = session.execute(text("SELECT type FROM specialists WHERE tg_id = :tg_id"), {'tg_id': tg_id}).fetchall()
+        return [row[0] for row in result]
+
+def get_all_questions(td_id: int):
+    #Возвращает list вопросов
+    types = get_specialist_types(tg_id)
+    with Session() as session:
+        params = {'types': tuple(types), 'status': 'NEW'}
+        query = text("SELECT id FROM questions WHERE specialist_type IN :types AND status = :status")
+        result = session.execute(query, params).fetchall()
+        return [row[0] for row in result]
+
+
+def get_question(question_id: int):
+    #возвращает вопрос по индексу
+    with Session() as session:
+        try:
+            result = session.execute(text("SELECT * FROM users WHERE id = :id"), {'id': question_id}).fetchone()
+            if result:
+                return dict(result)
+            else:
+                return None
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return None
+
+
+def try_answer_question(question_id: int, tg_id: int):
+    #Возвращает True если было NEW и удалось изменить и False иначе
+    with Session() as session:
+        try:
+            query = text("""
+                UPDATE questions
+                SET answered_by = :tg_id
+                WHERE id = :question_id AND (status = 'NEW' OR status = 'IN_PROGRESS')
+            """)
+            session.execute(query, {'question_id': question_id, 'tg_id': tg_id})
+            rows_updated = session.execute(text("SELECT row_count();")).scalar()
+            session.commit()
+            return rows_updated > 0
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            session.rollback()
+            return False
