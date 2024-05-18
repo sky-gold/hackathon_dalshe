@@ -26,15 +26,14 @@ def get_user(tg_id: int):
             print(f"An error occurred: {e}")
             return None
 
-def add_user(tg_id: int, tg_chat_id: int, tg_username: str, full_name: str):
+def add_user(tg_id: int, tg_username: str, full_name: str):
     with Session() as session:
         try:
             session.execute(text("""
-                INSERT INTO users (tg_id, tg_chat_id, tg_username, full_name)
-                VALUES (:tg_id, :tg_chat_id, :tg_username, :full_name)
+                INSERT INTO users (tg_id, tg_username, full_name)
+                VALUES (:tg_id, :tg_username, :full_name)
             """), {
                 'tg_id': tg_id,
-                'tg_chat_id': tg_chat_id,
                 'tg_username': tg_username,
                 'full_name': full_name
             })
@@ -64,23 +63,18 @@ def add_question(specialist_type: str, tg_id: int, question_text: str):
             print(f"An error occurred: {e}")
             session.rollback()
 
-def is_specialist(tg_id: int):
+def is_admin(tg_id: int):
     with Session() as session:
-        result = session.execute(text("SELECT COUNT(*) FROM specialists WHERE tg_id = :tg_id"), {'tg_id': tg_id}).scalar()
+        result = session.execute(text("SELECT COUNT(*) FROM admin WHERE tg_id = :tg_id"), {'tg_id': tg_id}).scalar()
         return result > 0
 
-def get_specialist_types(tg_id: int):
-    with Session() as session:
-        result = session.execute(text("SELECT type FROM specialists WHERE tg_id = :tg_id"), {'tg_id': tg_id}).fetchall()
-        return [row[0] for row in result]
-
 def get_all_questions(td_id: int):
-    #Возвращает list вопросов
+    #Возвращает list id вопросов
     types = get_specialist_types(tg_id)
     with Session() as session:
         params = {'types': tuple(types), 'status': 'NEW'}
-        query = text("SELECT id FROM questions WHERE specialist_type IN :types AND status = :status")
-        result = session.execute(query, params).fetchall()
+        query = text("SELECT id FROM questions")
+        result = session.execute(text(sql_query)).fetchall()
         return [row[0] for row in result]
 
 
@@ -88,7 +82,7 @@ def get_question(question_id: int):
     #возвращает вопрос по индексу
     with Session() as session:
         try:
-            result = session.execute(text("SELECT * FROM users WHERE id = :id"), {'id': question_id}).fetchone()
+            result = session.execute(text("SELECT * FROM questions WHERE id = :id"), {'id': question_id}).fetchone()
             if result:
                 return dict(result)
             else:
@@ -98,20 +92,12 @@ def get_question(question_id: int):
             return None
 
 
-def try_answer_question(question_id: int, tg_id: int):
-    #Возвращает True если было NEW и удалось изменить и False иначе
+def answer_question(question_id: int, answer: text):
     with Session() as session:
-        try:
-            query = text("""
-                UPDATE questions
-                SET answered_by = :tg_id
-                WHERE id = :question_id AND (status = 'NEW' OR status = 'IN_PROGRESS')
-            """)
-            session.execute(query, {'question_id': question_id, 'tg_id': tg_id})
-            rows_updated = session.execute(text("SELECT row_count();")).scalar()
-            session.commit()
-            return rows_updated > 0
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            session.rollback()
-            return False
+        sql_query = text("""
+            UPDATE questions
+            SET status = :status, answer = :answer
+            WHERE id = :question_id
+        """)
+        session.execute(sql_query, {'status': status, 'answer': answer_text, 'question_id': question_id})
+        session.commit()
