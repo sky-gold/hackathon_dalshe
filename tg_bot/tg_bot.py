@@ -8,25 +8,33 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
+def MakeKeyboard(arr: list[tuple[str, str]] | None = None):
+    keyboard = types.InlineKeyboardMarkup()
+    if arr is None:
+        return keyboard
+    buttons = list()
+    for button in arr:
+        buttons.append(types.InlineKeyboardButton(text=button[0], callback_data=button[1]))
+    keyboard.row(*buttons)
+    return keyboard
+
+
 @bot.message_handler(commands=['start'])
 def start_command_handler(message):
-    start_keyboard = types.InlineKeyboardMarkup()
-    anek_btn = types.InlineKeyboardButton('Анек', callback_data='Anek')
-    start_keyboard.add(anek_btn)
+    start_keyboard = MakeKeyboard([("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться со специалистом", "Con with expert")])
     bot.send_message(message.chat.id, "Hi", reply_markup=start_keyboard)
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
-    if call.data == "Anek":
-        bot.send_message(call.message.chat.id, '''Молодой монах принял постриг, и в монастыре ему первым заданием было помогать остальным монахам переписывать от руки церковные уложения, псалмы, законы и так далее. Поработав так с недельку, наш монашек обратил внимание, что все монахи переписывают эти материалы с предыдущей копии, а не с оригинала.
-Подивившись этому факту, он выразил свое удивление отцу-настоятелю:
-— Падре, ведь если кто-то допустил ошибку в первой копии, она же будет повторяться вечно, и ее никак не исправить, ибо не с чем сравнить!
-— Хм, сын мой — ответил отец-настоятель, — вообще-то мы так делали столетиями... Но, в принципе, в твоих рассуждениях что-то есть! — и с этими словами он спустился в подземелья, где в огромных сундуках хранились столетиями же не открывавшиеся первоисточники. И пропал...
-Когда прошли почти сутки со времени его исчезновения, обеспокоенный монашек спустился в те же подвалы на поиски святого отца. Он нашел его сразу — тот сидел перед громадным раскрытым томом из телячьей кожи, бился головой об острые камни подземелья и что-то нечленораздельно мычал...
-По покрытому грязью и ссадинами лицу его текла кровь, волосы спутались и взгляд был безумным.
-— Что с вами, святой отец? — вскричал потрясенный юноша, — Что случилось?!
-- Celebrate, — простонал отец-настоятель, — слово было: c-e-l-e-b-r-a-t-e! Not celibate!''')
+    if call.data == "FAQ":
+        bot.send_message(call.message.chat.id, "Тут будет FAQ")
+    elif call.data == "About us":
+        bot.send_message(call.message.chat.id, "Что-то про нас")
+    elif call.data == "Con with expert":
+        bot.send_message(call.message.chat.id, "Связь")
+    else:
+        bot.send_message(call.message.chat.id, "Я такого не умею")
 
 
 bot.polling(none_stop=True)
