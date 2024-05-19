@@ -66,7 +66,7 @@ def callback_query(call):
     if call.data == "Start":
         keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
                                   ("Получить помощь фонда", "Get help from the foundation"),
-                                  ("Связаться со специалистом", "Contact a specialist"),
+                                  ("Связаться с нами", "Contact us"),
                                   ("Психологическая помощь", "Psychological help"),
                                   ("Хочу помочь фонду", "Desire to help the foundation"),
                                   ("Отзывы", "Reviews"),
@@ -224,7 +224,7 @@ def callback_query(call):
     else:
         keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
                                   ("Получить помощь фонда", "Get help from the foundation"),
-                                  ("Связаться со специалистом", "Contact a specialist"),
+                                  ("Связаться с нами", "Contact us"),
                                   ("Психологическая помощь", "Psychological help"),
                                   ("Хочу помочь фонду", "Desire to help the foundation"),
                                   ("Отзывы", "Reviews"),
