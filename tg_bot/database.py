@@ -13,19 +13,6 @@ DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 engine = create_engine(DATABASE_URL)
 Session = sessionmaker(bind=engine)
 
-
-def get_user(tg_id: int):
-    with Session() as session:
-        try:
-            result = session.execute(text("SELECT * FROM users WHERE tg_id = :tg_id"), {'tg_id': tg_id}).fetchone()
-            if result:
-                return dict(result)
-            else:
-                return None
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return None
-
 def add_user(tg_id: int, tg_username: str, full_name: str):
     with Session() as session:
         try:
@@ -70,11 +57,12 @@ def is_admin(tg_id: int):
         result = session.execute(text("SELECT COUNT(*) FROM admin WHERE tg_id = :tg_id"), {'tg_id': tg_id}).scalar()
         return result > 0
 
-def get_all_questions(td_id: int):
+def get_all_questions():
     #Возвращает list id вопросов
     with Session() as session:
-        query = text("SELECT id FROM questions")
-        result = session.execute(text(query)).fetchall()
+        result = session.execute(text("SELECT id FROM questions")).fetchall()
+        if not result:
+            return []
         return [row[0] for row in result]
 
 
@@ -82,9 +70,17 @@ def get_question(question_id: int):
     #возвращает вопрос по индексу
     with Session() as session:
         try:
-            result = session.execute(text("SELECT * FROM questions WHERE id = :id"), {'id': question_id}).fetchone()
+            result = session.execute(text(f"SELECT * FROM questions WHERE id = {question_id}")).fetchone()
             if result:
-                return dict(result)
+                return {"id": result[0],
+                        "datetime": result[1],
+                        "specialist_type": result[2],
+                        "user_id": result[3],
+                        "question_text": result[4],
+                        "answer": result[5],
+                        "status": result[6]
+                        }
+
             else:
                 return None
         except Exception as e:
