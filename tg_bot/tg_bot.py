@@ -1,89 +1,234 @@
 import telebot
 from telebot import types
+from telebot.custom_filters import SimpleCustomFilter
 import os
 
-from database import add_user, add_question
+from database import add_user, add_question, answer_question
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 
-def MakeKeyboard(arr: list[tuple[str, str]] | None = None):
+Specialists = ["Онколог", "Лимфолог", "Эндокринолог", "Диетолог", "Дерматолог", "Психолог", "Медицинский юрист"]
+
+class MyIsAdmin(SimpleCustomFilter):
+    key = 'is_admin'
+    @staticmethod
+    def check(message):
+        # add_user(message.from_user.id, message.from_user.username,
+        #          message.from_user.first_name + " " + message.from_user.last_name)
+        #return datebase.is_admin(message.from_user.id)
+        return False
+
+
+bot.add_custom_filter(MyIsAdmin())
+
+
+def make_keyboard(arr: list[tuple[str, str]] | None = None):
     keyboard = types.InlineKeyboardMarkup()
     if arr is None:
         return keyboard
-    # buttons = list()
     for button in arr:
-        # buttons.append(types.InlineKeyboardButton(text=button[0], callback_data=button[1]))
         keyboard.add(types.InlineKeyboardButton(text=button[0], callback_data=button[1]))
-    # keyboard.row(*buttons)
     return keyboard
 
-
-def AskForExpert(expert):
+def ask_question(specialist):
     def second_step(message):
-        keyboard = MakeKeyboard(
-            [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-        bot.send_message(message.chat.id, f"Ваш вопрос для {expert} был записан, ожидайте ответа", reply_markup=keyboard)
-        add_question(expert, message.from_user.id, message.text)
+        question_num = str(add_question(specialist, message.from_user.id, message.text))
+        #faq1, faq2 = get_best_faq(message.text)
+        faq1, faq2 = [("Biba", "Boba"), ("Boba", "Biba")]
+        keyboard = make_keyboard(
+            [("Да", f"find_ans{question_num}"), ("Нет", "ans_not_find")])
+        bot.send_message(message.chat.id, f"Есть ли ответ на ваш вопрос здесь?", reply_markup=keyboard)
     return second_step
 
-
-@bot.message_handler(commands=['start'])
+@bot.message_handler(is_admin=False, commands=['start'])
 def start_command_handler(message):
-    add_user(message.from_user.id, message.chat.id, message.from_user.username, message.from_user.first_name + " " + message.from_user.last_name)
-    keyboard = MakeKeyboard([("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-    bot.send_message(message.chat.id, "Place holder", reply_markup=keyboard)
+    # add_user(message.from_user.id, message.from_user.username, message.from_user.first_name + " " + \
+    #                                     message.from_user.last_name)
+    keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
+                              ("Получить помощь фонда", "Get help from the foundation"),
+                              ("Связаться со с нами", "Contact us"),
+                              ("Психологическая помощь", "Psychological help"),
+                              ("Хочу помочь фонду", "Desire to help the foundation"),
+                              ("Отзывы", "Reviews"),
+                              ("Истории пациентов", "Patient stories"),
+                              ("О фонде", "About us")])
+    bot.send_message(message.chat.id, "Добро пожаловать, что бы вы хотели?", reply_markup=keyboard)
 
 
-@bot.callback_query_handler(func=lambda call: True)
+@bot.callback_query_handler(is_admin=False, func=lambda call: True)
 def callback_query(call):
     if call.data == "Start":
-        keyboard = MakeKeyboard(
-            [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-        bot.send_message(chat_id=call.message.chat.id, text="Place holder", reply_markup=keyboard)
-    elif call.data == "FAQ":
-        bot.send_message(call.message.chat.id, "Тут будет FAQ")
+        keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
+                                  ("Получить помощь фонда", "Get help from the foundation"),
+                                  ("Связаться со специалистом", "Contact a specialist"),
+                                  ("Психологическая помощь", "Psychological help"),
+                                  ("Хочу помочь фонду", "Desire to help the foundation"),
+                                  ("Отзывы", "Reviews"),
+                                  ("Истории пациентов", "Patient stories"),
+                                  ("О фонде", "About us")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Добро пожаловать, что бы вы хотели?",
+                              reply_markup=keyboard)
     elif call.data == "About us":
-        bot.send_message(call.message.chat.id, "Что-то про нас")
-    elif call.data == "Con with fond":
-        keyboard = MakeKeyboard([("Связаться по номеру телефона или почте", "Con using email or phone"),
-                                 ("Задать вопрос", "Ask a specialist a question"),
-                                 ("Связаться со специалистом", "Con with expert"),
-                                 ("Назад", "Start")])
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                              text="Как хотите связаться?", reply_markup=keyboard)
-    elif call.data == "Con using email or phone":
-        keyboard = MakeKeyboard(
-            [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                              text="Рабочее время в будни с 10:00 до 21:00\nпочта: info@dalshefond.ru\nтелефон: 8-800-707-44-03", reply_markup=keyboard)
-    elif call.data == "Ask a specialist a question":
-        # spec = GetSpec()
-        keyboard = MakeKeyboard(
-            [("Лимфолог", "Expert_ask: lymphologist"), ("Онколог", "Expert_ask: oncologist"), ("В стартовое меню", "Con with fond")])
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                              text="Какому специалисту вы хотите задать вопрос?", reply_markup=keyboard)
-    elif call.data.startswith("Expert_ask: "):
-        # spec = GetSpec()
-        expert = call.data.removeprefix("Expert_ask: ")
-        keyboard = MakeKeyboard([("Назад", "Ask a specialist a question")])
-        if expert == "oncologist":
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                                  text="Напишите свой вопрос специалисту: ", reply_markup=keyboard)
-            bot.register_next_step_handler(call.message, AskForExpert(expert))
-        elif expert == "lymphologist":
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                                  text="Напишите свой вопрос специалисту: ", reply_markup=keyboard)
-            bot.register_next_step_handler(call.message, AskForExpert(expert))
-        else:
-            keyboard = MakeKeyboard(
-                [("Частые вопросы", "FAQ"), ("О нас", "About us"), ("Связаться с фондом", "Con with fond")])
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.id,
-                                  text="Place holder", reply_markup=keyboard)
+        keyboard = make_keyboard([("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                                   text="С апреля 2011 года Благотворительный фонд \"ДАЛЬШЕ\" делает все возможное,"
+                                        "чтобы российские женщины имели доступ к качественной ранней диагностике рака"
+                                        "груди, а те, кто столкнулся с заболеванием - своевременно получили лечение и"
+                                        "как можно быстрее возвращались к полноценной жизни."
+                                        "\n\n"
+                                        "С 2014 года фонд представляет Россию в Европейской коалиции по борьбе с раком"
+                                        "молочной железы Europa Donna (крупнейшая европейская общественная организация,"
+                                        "лоббирующая интересы пациентов с диагнозом рак груди)"
+                                        "\n"
+                                        "[О нас](https://dalshefond.ru/#about)", reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Patient stories":
+        keyboard = make_keyboard([("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете почитать истории пациентов:  [Истории](https://vmesteplus.ru/first-hand/stories/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Reviews":
+        keyboard = make_keyboard([("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете посмотреть отзывы пациентов о фонде:  [Отзывы](https://vmesteplus.ru/first-hand/reviews/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Desire to help the foundation":
+        keyboard = make_keyboard([("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете помочь нашему фонду:  [Пожертвовать](https://dalshefond.ru/donate/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Psychological help":
+        keyboard = make_keyboard([("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="О психологической помощи: "
+                                   "[О помощи](https://vmesteplus.ru/support/how/psychological-support/)"
+                                   "\n"
+                                   "Расписание мероприятий: [Расписание](https://vmesteplus.ru/events/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "More about breast cancer":
+        keyboard = make_keyboard([("Как сохранить здоровье груди", "Keep the breasts healthy"),
+                                  ("Как узнать свой риск", "Recognizing your risk"),
+                                  ("Как лечится рак груди", "How breast cancer is treated"),
+                                  ("Навигатор для пациента", "Patient navigator"),
+                                  ("Получить фонд помощи", "Get help from the foundation"),
+                                  ("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Что вы хотите узнать?", reply_markup=keyboard)
+    elif call.data == "Keep the breasts healthy":
+        keyboard = make_keyboard([("Назад", "More about breast cancer"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете получить пособие по профилактике [Пособие](https://dalshefond.ru/prevention-manual/)",
+                              reply_markup=keyboard)
+    elif call.data == "Recognizing your risk":
+        keyboard = make_keyboard([("Назад", "More about breast cancer"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="В этом калькуляторе вы можете узнать свой риск: "
+                                   "[Калькулятор риска](https://www.dalshefond.ru/check/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Patient navigator":
+        keyboard = make_keyboard([("Назад", "More about breast cancer"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете узнать, как лечиться по ОМС: "
+                                   "[Путеводитель](https://vmesteplus.ru/first-hand/articles/rak-grudi-putevoditel/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "How breast cancer is treated":
+        keyboard = make_keyboard([("Назад", "More about breast cancer")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Есть онлайн курс, где можно узнать как лечится рак груди: "
+                                   "[Курс](https://vmesteplus.ru/distance-programs/oncologist-course/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Get help from the foundation":
+        keyboard = make_keyboard([("Пособие пациента", "Patient manual"),
+                                  ("Индивидуальную помощь", "Individual assistance"),
+                                  ("Бесплатное такси к месту лечения", "Targeted assistance"),
+                                  ("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Какую помощь вы хотите получить?", reply_markup=keyboard)
+    elif call.data == "Patient manual":
+        with open("patient_manual.pdf", "rb") as file:
+            bot.send_document(call.message.chat.id, file)
+        keyboard = make_keyboard([("Назад", "Get help from the foundation"), ("Вернуться в начало", "Start")])
+        bot.send_message(chat_id=call.message.chat.id, text="Это пособие содержит информацию для пациентов",
+                         reply_markup=keyboard)
+    elif call.data == "Individual assistance":
+        keyboard = make_keyboard([("Назад", "Get help from the foundation"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете получить индивидуальную помощь: "
+                                   "[Индивидуальная помощь](https://vmesteplus.ru/personal/personalized-help/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Targeted assistance":
+        keyboard = make_keyboard([("Назад", "Get help from the foundation"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Тут вы можете узнать про бесплатное такси до места лечения: "
+                                   "[Адресная помощь](https://vmesteplus.ru/support/how/targeted-assistance/)",
+                              reply_markup=keyboard, parse_mode="Markdown")
+    elif call.data == "Contact us":
+        keyboard = make_keyboard([("По телефону или почте", "Phone and email"), ("Задать вопрос", "Ask a question"),
+                                  ("Назад", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Как вы хотите связаться с нами?",
+                              reply_markup=keyboard)
+    elif call.data == "Phone and email":
+        keyboard = make_keyboard([("Назад", "Contact us"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Рабочее время: пн-пт с 11:00 до 20:00\n"
+                                   "почта: info@dalshefond.ru\n"
+                                   "телефон: 8-800-707-44-03",
+                              reply_markup=keyboard)
+    elif call.data == "Ask a question":
+        specs = []
+        for specialist in Specialists:
+            specs.append((specialist, specialist))
+        specs.append(("Назад", "Contact us"))
+        specs.append(("Вернуться в начало", "Start"))
+        keyboard = make_keyboard(specs)
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Какому специалисту вы хотите задать вопрос?",
+                              reply_markup=keyboard)
+    elif call.data in Specialists:
+        keyboard = make_keyboard([("Назад", "Ask a question"), ("Вернуться в начало", "Start")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Напишите свой вопрос для специалиста или вернитесь назад или в начало",
+                              reply_markup=keyboard)
+        bot.register_next_step_handler(call.message, ask_question(call.data))
+    elif call.data.startswith("find_ans"):
+        question_num = int(call.data.removeprefix("find_ans"))
+        answer_question(question_num, "FAQ")
+        keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
+                                  ("Получить помощь фонда", "Get help from the foundation"),
+                                  ("Связаться со с нами", "Contact us"),
+                                  ("Психологическая помощь", "Psychological help"),
+                                  ("Хочу помочь фонду", "Desire to help the foundation"),
+                                  ("Отзывы", "Reviews"),
+                                  ("Истории пациентов", "Patient stories"),
+                                  ("О фонде", "About us")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Мы рады, что смогли помочь", reply_markup=keyboard)
+    elif call.data == "ans_not_find":
+        keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
+                                  ("Получить помощь фонда", "Get help from the foundation"),
+                                  ("Связаться со с нами", "Contact us"),
+                                  ("Психологическая помощь", "Psychological help"),
+                                  ("Хочу помочь фонду", "Desire to help the foundation"),
+                                  ("Отзывы", "Reviews"),
+                                  ("Истории пациентов", "Patient stories"),
+                                  ("О фонде", "About us")])
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
+                              text="Ваш вопрос был передан специалисту", reply_markup=keyboard)
     else:
-        bot.send_message(call.message.chat.id, "Я такого не умею")
+        keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
+                                  ("Получить помощь фонда", "Get help from the foundation"),
+                                  ("Связаться со специалистом", "Contact a specialist"),
+                                  ("Психологическая помощь", "Psychological help"),
+                                  ("Хочу помочь фонду", "Desire to help the foundation"),
+                                  ("Отзывы", "Reviews"),
+                                  ("Истории пациентов", "Patient stories"),
+                                  ("О фонде", "About us")])
+        bot.send_message(call.message.chat.id, "Неизвестная команда :(", reply_markup=keyboard)
+
 
 
 bot.polling(none_stop=True)

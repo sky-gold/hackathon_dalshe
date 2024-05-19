@@ -49,9 +49,10 @@ def add_user(tg_id: int, tg_username: str, full_name: str):
 def add_question(specialist_type: str, tg_id: int, question_text: str):
     with Session() as session:
         try:
-            session.execute(text("""
+            result = session.execute(text("""
                 INSERT INTO questions (specialist_type, user_id, question_text, status)
                 VALUES (:specialist_type, :user_id, :question_text, 'NEW')
+                RETURNING id
             """), {
                 'specialist_type': specialist_type,
                 'user_id': tg_id,
@@ -59,6 +60,7 @@ def add_question(specialist_type: str, tg_id: int, question_text: str):
             })
             session.commit()
             print("Question added successfully.")
+            return result.scalar()
         except Exception as e:
             print(f"An error occurred: {e}")
             session.rollback()
@@ -70,11 +72,9 @@ def is_admin(tg_id: int):
 
 def get_all_questions(td_id: int):
     #Возвращает list id вопросов
-    types = get_specialist_types(tg_id)
     with Session() as session:
-        params = {'types': tuple(types), 'status': 'NEW'}
         query = text("SELECT id FROM questions")
-        result = session.execute(text(sql_query)).fetchall()
+        result = session.execute(text(query)).fetchall()
         return [row[0] for row in result]
 
 
@@ -99,5 +99,5 @@ def answer_question(question_id: int, answer: text):
             SET status = :status, answer = :answer
             WHERE id = :question_id
         """)
-        session.execute(sql_query, {'status': status, 'answer': answer_text, 'question_id': question_id})
+        session.execute(sql_query, {'status': 'DONE', 'answer': answer, 'question_id': question_id})
         session.commit()
