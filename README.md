@@ -55,3 +55,12 @@ docker-compose down
 ```
 
 Эта команда остановит и удалит все контейнеры и сети, созданные Docker Compose.
+
+Бот работает по разному для админов и пользователей, чтобы добавить себя к админам, нужно в db/init.sql в конце файла добавить
+
+```
+INSERT INTO admin (tg_id, tg_username)
+VALUES ('your_tg_user_id', 'your_tg_username');
+```
+
+Чтобы узнать tg_id можно воспользоваться ботом [MyIdBot](https://t.me/my_id_bot), пример username @Leloush_0 (только без @)
