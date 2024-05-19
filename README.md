@@ -28,6 +28,7 @@ cd hackathon_dalshe
 2. Задайте переменные окружения в файле `.env`:
    Для работы нужно задать переменные для работы базы данных **DB_HOST**, **DB_NAME**, **DB_USER**, **DB_PASSWORD** и для работы бота **BOT_TOKEN**  
    [Как получить токен телеграм бота](https://core.telegram.org/bots/tutorial#obtain-your-bot-token)
+   
    Пример .env:
 
 ```bash
