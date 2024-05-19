@@ -2,6 +2,7 @@ import telebot
 from telebot import types
 from telebot.custom_filters import SimpleCustomFilter
 from consts import SPECIALISTS
+from crm import crm_event
 import os
 
 from database import add_user, add_question, answer_question, is_admin, get_all_questions, get_question
@@ -39,6 +40,7 @@ def ask_question(specialist):
         faq1, faq2 = get_most_similar_faq(message.text)
         keyboard = make_keyboard(
             [("Да", f"find_ans{question_num}"), ("Нет", "ans_not_find")])
+        crm_event("New message", question_num)
         bot.send_message(message.chat.id, f"Часто задаваемые вопросы, похожие на ваш, есть ли среди них ответ на"
                                           f"него?\n"
                                           f"{faq1[0]} -> {faq1[1]}\n"
@@ -200,6 +202,7 @@ def callback_query(call):
     elif call.data.startswith("find_ans"):
         question_num = int(call.data.removeprefix("find_ans"))
         answer_question(question_num, "FAQ")
+        crm_event("Message answered", question_num)
         keyboard = make_keyboard([("Хочу больше узнать о раке груди", "More about breast cancer"),
                                   ("Получить помощь фонда", "Get help from the foundation"),
                                   ("Связаться с нами", "Contact us"),
@@ -243,6 +246,7 @@ def waiting_question_text_from_admin(question_id):
             answer_question(question["id"], message.text)
             keyboard = make_keyboard([("Получить все незакрытые вопросы", "Get all questions"),
                                       ("Ответить на вопрос", "Answer for question")])
+            crm_event("Message answered", question_id)
             bot.send_message(chat_id=message.chat.id, text="Ответ отправлен пользователю", reply_markup=keyboard)
         except Exception as e:
             keyboard = make_keyboard([("Получить все незакрытые вопросы", "Get all questions"),
