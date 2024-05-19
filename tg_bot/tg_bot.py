@@ -118,7 +118,7 @@ def callback_query(call):
                                   ("Как узнать свой риск", "Recognizing your risk"),
                                   ("Как лечится рак груди", "How breast cancer is treated"),
                                   ("Навигатор для пациента", "Patient navigator"),
-                                  ("Получить фонд помощи", "Get help from the foundation"),
+                                  ("Получить помощь от фонда", "Get help from the foundation"),
                                   ("Назад", "Start")])
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id,
                               text="Что вы хотите узнать?", reply_markup=keyboard)
