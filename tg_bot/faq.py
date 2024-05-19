@@ -18,7 +18,7 @@ def get_most_similar_faq(new_question):
             faq_questions.append(faq_qa[i][0][j].lower())
             faq_id.append((i, j))
     vectorizer = TfidfVectorizer()
-    question_vectors = vectorizer.fit_transform(questions)
+    question_vectors = vectorizer.fit_transform(faq_questions)
     new_question_vector = vectorizer.transform([new_question])
     similarity_scores = cosine_similarity(new_question_vector, question_vectors).flatten()
     sort_id = []
@@ -27,4 +27,4 @@ def get_most_similar_faq(new_question):
     sort_id.sort()
     i1, j1 = sort_id[0][1], sort_id[0][2]
     i2, j2 = sort_id[1][1], sort_id[1][2]
-    return (faq_qa[i1][0][j1], faq_qa[i1][1]), (faq_qa[i][0][j], faq_qa[i][1])
+    return (faq_qa[i1][0][j1], faq_qa[i1][1]), (faq_qa[i2][0][j2], faq_qa[i2][1])

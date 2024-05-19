@@ -4,6 +4,7 @@ from telebot.custom_filters import SimpleCustomFilter
 import os
 
 from database import add_user, add_question, answer_question
+from faq import get_most_similar_faq
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -36,11 +37,12 @@ def make_keyboard(arr: list[tuple[str, str]] | None = None):
 def ask_question(specialist):
     def second_step(message):
         question_num = str(add_question(specialist, message.from_user.id, message.text))
-        #faq1, faq2 = get_best_faq(message.text)
-        faq1, faq2 = [("Biba", "Boba"), ("Boba", "Biba")]
+        faq1, faq2 = get_most_similar_faq(message.text)
         keyboard = make_keyboard(
             [("Да", f"find_ans{question_num}"), ("Нет", "ans_not_find")])
-        bot.send_message(message.chat.id, f"Есть ли ответ на ваш вопрос здесь?", reply_markup=keyboard)
+        bot.send_message(message.chat.id, f"Есть ли ответ на ваш вопрос здесь?\n"
+                                          f"{faq1[0]} -> {faq1[1]}\n"
+                                          f"{faq2[0]} -> {faq2[1]}", reply_markup=keyboard)
     return second_step
 
 @bot.message_handler(is_admin=False, commands=['start'])
